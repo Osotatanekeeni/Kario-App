@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Kario-App",
-    "slug": "Kario-App",
+    "slug": "kario",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -43,6 +43,13 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "f1f91eb0-e42a-4434-bc1d-6e0647eca5ff"
+      }
+    },
+    "owner": "osotatanekeeni"
   }
 }

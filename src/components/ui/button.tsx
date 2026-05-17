@@ -60,7 +60,7 @@ export function Button({
           <Text
             variant={size === 'sm' ? 'bodySm' : 'body'}
             weight="semibold"
-            style={{ color: fg }}
+            style={{ color: fg, fontSize: size !== 'sm' ? 16 : undefined }}
           >
             {label}
           </Text>

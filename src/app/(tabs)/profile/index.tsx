@@ -1,5 +1,6 @@
+import { MaterialIcons } from '@expo/vector-icons';
 import React from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ScreenHeader } from '@/components/shared/screen-header';
@@ -8,12 +9,14 @@ import { Divider } from '@/components/ui/divider';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Text } from '@/components/ui/text';
 import { useTheme } from '@/hooks/use-theme';
+import { signOut } from '@/services/auth';
 import { useUserStore } from '@/store/user-store';
 
 export default function ProfileScreen() {
   const { colors, spacing, radius } = useTheme();
-  const profile = useUserStore((s) => s.profile);
+  const profile     = useUserStore((s) => s.profile);
   const preferences = useUserStore((s) => s.preferences);
+  const reset       = useUserStore((s) => s.reset);
 
   const displayName = profile?.displayName ?? 'Trader';
   const tradingStyle = profile?.tradingStyle
@@ -85,6 +88,38 @@ export default function ProfileScreen() {
             <SettingRow label="Version" value="1.0.0" icon="info.circle" />
           </Card>
         </View>
+
+        {__DEV__ && (
+          <View style={{ gap: spacing[3] }}>
+            <Text variant="caption" color="tertiary" weight="semibold" caps>
+              Developer
+            </Text>
+            <Card variant="outlined" padding={0}>
+              <Pressable
+                style={({ pressed }) => [
+                  styles.settingRow,
+                  {
+                    paddingHorizontal: spacing[5],
+                    paddingVertical: spacing[4],
+                    opacity: pressed ? 0.6 : 1,
+                  },
+                ]}
+                onPress={async () => {
+                  reset();
+                  await signOut().catch(() => {});
+                }}
+              >
+                <View style={styles.settingLeft}>
+                  <MaterialIcons name="replay" size={16} color={colors.warning} />
+                  <Text variant="body" style={{ marginLeft: spacing[3], color: colors.warning }}>
+                    Reset onboarding
+                  </Text>
+                </View>
+                <MaterialIcons name="chevron-right" size={16} color={colors.textTertiary} />
+              </Pressable>
+            </Card>
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );

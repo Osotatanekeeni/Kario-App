@@ -1,5 +1,8 @@
+import { MaterialIcons } from '@expo/vector-icons';
+import { useQuery } from '@tanstack/react-query';
+import { router } from 'expo-router';
 import React from 'react';
-import { FlatList, StyleSheet, View } from 'react-native';
+import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { EmptyState } from '@/components/shared/empty-state';
@@ -7,16 +10,24 @@ import { ScreenHeader } from '@/components/shared/screen-header';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Divider } from '@/components/ui/divider';
-import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Text } from '@/components/ui/text';
+import { useSession } from '@/features/auth/hooks';
 import { useTheme } from '@/hooks/use-theme';
-import { emotionDisplayLabel, formatRelative } from '@/utils';
-import { useJournalStore } from '@/store/journal-store';
-import { TradeEntry } from '@/types';
+import { fetchTrades, TradeSummary } from '@/services/trades';
+import { formatRelative } from '@/utils';
 
 export default function JournalScreen() {
   const { colors, spacing } = useTheme();
-  const entries = useJournalStore((s) => s.entries);
+  const { session } = useSession();
+  const userId = session?.user.id ?? '';
+
+  const { data: trades = [], isLoading, refetch } = useQuery({
+    queryKey: ['trades', userId],
+    queryFn: () => fetchTrades(userId),
+    enabled: !!userId,
+  });
+
+  const openModal = () => router.push('/modals/log-trade');
 
   return (
     <SafeAreaView
@@ -26,96 +37,130 @@ export default function JournalScreen() {
       <ScreenHeader
         title="Journal"
         subtitle={
-          entries.length > 0
-            ? `${entries.length} ${entries.length === 1 ? 'entry' : 'entries'}`
+          trades.length > 0
+            ? `${trades.length} ${trades.length === 1 ? 'entry' : 'entries'}`
             : undefined
         }
         showDivider
         right={
-          <IconSymbol name="square.and.pencil" color={colors.tint} size={22} />
+          <Pressable onPress={openModal} hitSlop={8}>
+            <MaterialIcons name="add" size={26} color={colors.tint} />
+          </Pressable>
         }
       />
 
-      {entries.length === 0 ? (
+      {isLoading ? (
+        <View style={styles.center}>
+          <Text variant="body" color="tertiary">Loading…</Text>
+        </View>
+      ) : trades.length === 0 ? (
         <EmptyState
           heading="No entries yet"
           body="Begin by recording your first trade. Honest reflection is the edge."
-          action={{ label: 'Log a Trade', onPress: () => {} }}
+          action={{ label: 'Log a Trade', onPress: openModal }}
         />
       ) : (
         <FlatList
-          data={entries}
+          data={trades}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={{ padding: spacing[6], gap: spacing[3] }}
-          renderItem={({ item }) => <EntryCard entry={item} />}
+          contentContainerStyle={{ padding: spacing[4], gap: spacing[3] }}
+          showsVerticalScrollIndicator={false}
+          onRefresh={refetch}
+          refreshing={isLoading}
+          renderItem={({ item }) => <TradeCard trade={item} />}
         />
       )}
     </SafeAreaView>
   );
 }
 
-function EntryCard({ entry }: { entry: TradeEntry }) {
-  const { spacing } = useTheme();
+// ---------------------------------------------------------------------------
+// Trade card
+// ---------------------------------------------------------------------------
+
+function TradeCard({ trade }: { trade: TradeSummary }) {
+  const { colors, spacing } = useTheme();
 
   const outcomeTone =
-    entry.outcome === 'win' ? 'positive' : entry.outcome === 'loss' ? 'negative' : 'neutral';
+    trade.outcome === 'win'
+      ? 'positive'
+      : trade.outcome === 'loss'
+      ? 'negative'
+      : trade.outcome === 'breakeven'
+      ? 'warning'
+      : 'neutral';
+
+  const outcomLabel =
+    trade.outcome
+      ? trade.outcome.charAt(0).toUpperCase() + trade.outcome.slice(1)
+      : 'Open';
 
   return (
-    <Card onPress={() => {}} style={{ marginBottom: spacing[2] }}>
+    <Card style={{ gap: 0 }}>
+      {/* Top row: pair + badges */}
       <View style={styles.topRow}>
-        <View>
-          <Text variant="h4">{entry.symbol}</Text>
+        <View style={{ flex: 1 }}>
+          <Text variant="h4" weight="semibold">{trade.pair}</Text>
           <Text variant="dataSm" color="tertiary" style={{ marginTop: 3 }}>
-            {formatRelative(entry.createdAt)}
+            {formatRelative(trade.createdAt)}
           </Text>
         </View>
         <View style={styles.badges}>
-          {entry.outcome && (
-            <Badge
-              label={entry.outcome.charAt(0).toUpperCase() + entry.outcome.slice(1)}
-              tone={outcomeTone as any}
-            />
-          )}
+          <Badge label={outcomLabel} tone={outcomeTone as any} />
           <Badge
-            label={entry.direction === 'long' ? 'Long' : 'Short'}
-            tone={entry.direction === 'long' ? 'tint' : 'sage'}
+            label={trade.direction === 'long' ? 'Long' : 'Short'}
+            tone={trade.direction === 'long' ? 'tint' : 'neutral'}
           />
+          {trade.session ? (
+            <Badge label={trade.session} tone="neutral" />
+          ) : null}
         </View>
       </View>
 
-      {entry.disciplineScore !== undefined && (
+      {/* Emotions row */}
+      {(trade.preEmotion || trade.postEmotion) && (
         <>
           <Divider subtle style={{ marginVertical: spacing[3] }} />
-          <View style={styles.scoreRow}>
-            <Text variant="dataSm" color="tertiary">Discipline</Text>
-            <Text
-              variant="data"
-              weight="medium"
-              color={
-                entry.disciplineScore >= 70
-                  ? 'positive'
-                  : entry.disciplineScore >= 40
-                  ? 'warning'
-                  : 'negative'
-              }
-            >
-              {entry.disciplineScore}
-            </Text>
+          <View style={styles.emotionRow}>
+            {trade.preEmotion ? (
+              <EmotionChip label={trade.preEmotion} prefix="Before" />
+            ) : null}
+            {trade.preEmotion && trade.postEmotion ? (
+              <MaterialIcons name="arrow-forward" size={14} color={colors.textTertiary} />
+            ) : null}
+            {trade.postEmotion ? (
+              <EmotionChip label={trade.postEmotion} prefix="After" />
+            ) : null}
           </View>
         </>
-      )}
-
-      {entry.emotionBefore && (
-        <Text variant="caption" color="tertiary" style={{ marginTop: spacing[2] }}>
-          Entered feeling {emotionDisplayLabel(entry.emotionBefore.label).toLowerCase()}
-        </Text>
       )}
     </Card>
   );
 }
 
+function EmotionChip({ label, prefix }: { label: string; prefix: string }) {
+  const { colors } = useTheme();
+  return (
+    <View style={styles.emotionChip}>
+      <Text variant="dataSm" color="tertiary">{prefix}: </Text>
+      <Text variant="dataSm" weight="medium" style={{ color: colors.textSecondary }}>
+        {label}
+      </Text>
+    </View>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Styles
+// ---------------------------------------------------------------------------
+
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  center: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   topRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -127,10 +172,15 @@ const styles = StyleSheet.create({
     gap: 6,
     flexWrap: 'wrap',
     justifyContent: 'flex-end',
+    flexShrink: 1,
   },
-  scoreRow: {
+  emotionRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 8,
+  },
+  emotionChip: {
+    flexDirection: 'row',
     alignItems: 'center',
   },
 });

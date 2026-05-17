@@ -1,23 +1,41 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { create } from 'zustand';
-import { createJSONStorage, persist } from 'zustand/middleware';
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { create } from "zustand";
+import { createJSONStorage, persist } from "zustand/middleware";
 
-import { generateId, todayISO } from '@/utils';
-import { UserPreferences, UserProfile } from '@/types';
+import { UserPreferences, UserProfile } from "../types";
+import { generateId, todayISO } from "../utils";
+
+export interface PendingOnboardingData {
+  yearsTrading: string;
+  markets: string[];
+  tradingSession: string;
+  tradingStyle: string;
+  mainChallenge: string;
+  dominantEmotion: string;
+  recurringMistake: string;
+  rules: string[];
+  goals: string[];
+  traderIdentity: string;
+}
 
 interface UserState {
   profile: UserProfile | null;
   preferences: UserPreferences;
+  hasSeenOnboarding: boolean;
+  pendingOnboarding: PendingOnboardingData | null;
+
   setProfile: (profile: UserProfile) => void;
   updateProfile: (updates: Partial<UserProfile>) => void;
   updatePreferences: (updates: Partial<UserPreferences>) => void;
   completeOnboarding: () => void;
+  setHasSeenOnboarding: (v: boolean) => void;
+  setPendingOnboarding: (data: PendingOnboardingData | null) => void;
   reset: () => void;
 }
 
 const DEFAULT_PREFERENCES: UserPreferences = {
-  theme: 'system',
-  defaultCurrency: 'USD',
+  theme: "system",
+  defaultCurrency: "USD",
   reminderEnabled: false,
 };
 
@@ -32,6 +50,8 @@ export const useUserStore = create<UserState>()(
     (set) => ({
       profile: null,
       preferences: DEFAULT_PREFERENCES,
+      hasSeenOnboarding: false,
+      pendingOnboarding: null,
 
       setProfile: (profile) => set({ profile }),
 
@@ -52,11 +72,21 @@ export const useUserStore = create<UserState>()(
             : { ...DEFAULT_PROFILE, onboardingCompleted: true },
         })),
 
-      reset: () => set({ profile: null, preferences: DEFAULT_PREFERENCES }),
+      setHasSeenOnboarding: (v) => set({ hasSeenOnboarding: v }),
+
+      setPendingOnboarding: (data) => set({ pendingOnboarding: data }),
+
+      reset: () =>
+        set({
+          profile: null,
+          preferences: DEFAULT_PREFERENCES,
+          hasSeenOnboarding: false,
+          pendingOnboarding: null,
+        }),
     }),
     {
-      name: 'kario-user',
+      name: "kario-user",
       storage: createJSONStorage(() => AsyncStorage),
-    }
-  )
+    },
+  ),
 );

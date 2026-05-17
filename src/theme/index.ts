@@ -81,10 +81,10 @@ export const Typography: Record<TypeRole, TypeToken> = {
   h4:      { group: 'heading', size: 17, lhFactor: 1.35, defaultWeight: 'medium'  },
   bodyLg:  { group: 'body',    size: 17, lhFactor: 1.55, defaultWeight: 'regular' },
   body:    { group: 'body',    size: 15, lhFactor: 1.55, defaultWeight: 'regular' },
-  bodySm:  { group: 'body',    size: 13, lhFactor: 1.5,  defaultWeight: 'regular' },
-  caption: { group: 'body',    size: 11, lhFactor: 1.45, defaultWeight: 'regular' },
+  bodySm:  { group: 'body',    size: 14, lhFactor: 1.5,  defaultWeight: 'regular' },
+  caption: { group: 'body',    size: 14, lhFactor: 1.45, defaultWeight: 'regular' },
   data:    { group: 'mono',    size: 14, lhFactor: 1.4,  defaultWeight: 'regular' },
-  dataSm:  { group: 'mono',    size: 12, lhFactor: 1.4,  defaultWeight: 'regular' },
+  dataSm:  { group: 'mono',    size: 14, lhFactor: 1.4,  defaultWeight: 'regular' },
 } as const;
 
 export const Spacing = {

@@ -1,17 +1,13 @@
 import React from 'react';
-import { Text as RNText, TextProps as RNTextProps, StyleSheet } from 'react-native';
+import { Text as RNText, TextProps as RNTextProps } from 'react-native';
 
+import { FontFamily } from '@/constants/fonts';
+import { TypeGroup, TypeRole, TypeWeight, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
-export type TextVariant =
-  | 'display'   // 36 — hero numbers, large headings
-  | 'title'     // 30 — screen titles
-  | 'headline'  // 24 — section headings
-  | 'subhead'   // 20 — sub-sections
-  | 'body'      // 15 — primary reading text
-  | 'callout'   // 17 — emphasized inline text
-  | 'footnote'  // 13 — secondary/supporting text
-  | 'caption';  // 11 — labels, timestamps
+// ---------------------------------------------------------------------------
+// Color roles
+// ---------------------------------------------------------------------------
 
 export type TextColor =
   | 'primary'
@@ -22,42 +18,61 @@ export type TextColor =
   | 'positive'
   | 'negative'
   | 'warning'
-  | 'neutral';
+  | 'neutral'
+  | 'sage';
 
-export type TextWeight = 'regular' | 'medium' | 'semibold' | 'bold';
+// ---------------------------------------------------------------------------
+// Props
+//
+// We use `variant` (not `role`) to avoid conflicting with React Native's
+// built-in TextProps.role which is reserved for accessibility purposes.
+// ---------------------------------------------------------------------------
 
-interface TextProps extends RNTextProps {
-  variant?: TextVariant;
-  weight?: TextWeight;
+export interface TextProps extends RNTextProps {
+  /** Semantic typography variant — determines font family, size, default weight. */
+  variant?: TypeRole;
+  /**
+   * Weight override within the variant's font family.
+   * Ignored for 'brand' (Boogaloo only ships Regular).
+   */
+  weight?: TypeWeight;
+  /** Semantic color token. */
   color?: TextColor;
-  serif?: boolean;
+  /** Uppercase with tracking — for overline labels and caps headers. */
+  caps?: boolean;
 }
+
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
 
 export function Text({
   variant = 'body',
   weight,
   color = 'primary',
-  serif = false,
+  caps = false,
   style,
   ...rest
 }: TextProps) {
-  const { colors, fontSize, fonts } = useTheme();
+  const { colors } = useTheme();
 
-  const resolvedWeight = weight ?? defaultWeightFor(variant);
-  const resolvedColor = colorFor(color, colors);
-  const size = sizeFor(variant);
-  const lh = lineHeightFor(variant);
-  const fontFamily = serif ? fonts.serif : fonts.sans;
+  const token = Typography[variant];
+  const resolvedWeight = weight ?? token.defaultWeight;
+  const fontFamily = resolveFontFamily(token.group, resolvedWeight);
+  const fontSize = token.size;
+  const lineHeight = Math.round(fontSize * token.lhFactor);
+  const resolvedColor = resolveColor(color, colors);
 
   return (
     <RNText
       style={[
         {
-          fontSize: size,
-          lineHeight: Math.round(size * lh),
-          fontWeight: resolvedWeight,
-          color: resolvedColor,
           fontFamily,
+          fontSize,
+          lineHeight,
+          color: resolvedColor,
+          letterSpacing: caps ? 0.7 : undefined,
+          textTransform: caps ? 'uppercase' : undefined,
         },
         style,
       ]}
@@ -70,41 +85,44 @@ export function Text({
 // Helpers
 // ---------------------------------------------------------------------------
 
-function sizeFor(variant: TextVariant): number {
-  switch (variant) {
-    case 'display':  return 36;
-    case 'title':    return 30;
-    case 'headline': return 24;
-    case 'subhead':  return 20;
-    case 'callout':  return 17;
-    case 'body':     return 15;
-    case 'footnote': return 13;
-    case 'caption':  return 11;
+function resolveFontFamily(group: TypeGroup, weight: TypeWeight): string {
+  switch (group) {
+    case 'brand':
+      return FontFamily.brand;
+
+    case 'heading': {
+      const map: Record<TypeWeight, string> = {
+        light:    FontFamily.heading.light,
+        regular:  FontFamily.heading.regular,
+        medium:   FontFamily.heading.medium,
+        semibold: FontFamily.heading.semibold,
+        bold:     FontFamily.heading.bold,
+      };
+      return map[weight] ?? FontFamily.heading.regular;
+    }
+
+    case 'body': {
+      const map: Record<TypeWeight, string> = {
+        light:    FontFamily.body.light,
+        regular:  FontFamily.body.regular,
+        medium:   FontFamily.body.medium,
+        semibold: FontFamily.body.semibold,
+        bold:     FontFamily.body.bold,
+      };
+      return map[weight] ?? FontFamily.body.regular;
+    }
+
+    case 'mono':
+      return weight === 'medium'
+        ? FontFamily.mono.medium
+        : FontFamily.mono.regular;
   }
 }
 
-function lineHeightFor(variant: TextVariant): number {
-  switch (variant) {
-    case 'display':
-    case 'title':    return 1.2;
-    case 'headline':
-    case 'subhead':  return 1.3;
-    default:         return 1.5;
-  }
-}
-
-function defaultWeightFor(variant: TextVariant): TextWeight {
-  switch (variant) {
-    case 'display':
-    case 'title':    return 'bold';
-    case 'headline': return 'semibold';
-    case 'subhead':  return 'semibold';
-    case 'callout':  return 'medium';
-    default:         return 'regular';
-  }
-}
-
-function colorFor(color: TextColor, colors: ReturnType<typeof useTheme>['colors']): string {
+function resolveColor(
+  color: TextColor,
+  colors: ReturnType<typeof useTheme>['colors']
+): string {
   switch (color) {
     case 'primary':   return colors.text;
     case 'secondary': return colors.textSecondary;
@@ -115,7 +133,6 @@ function colorFor(color: TextColor, colors: ReturnType<typeof useTheme>['colors'
     case 'negative':  return colors.negative;
     case 'warning':   return colors.warning;
     case 'neutral':   return colors.neutral;
+    case 'sage':      return colors.sage;
   }
 }
-
-const styles = StyleSheet.create({});

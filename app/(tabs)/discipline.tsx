@@ -4,10 +4,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { EmptyState } from '@/components/shared/empty-state';
 import { ScreenHeader } from '@/components/shared/screen-header';
-import { Badge } from '@/components/ui/badge';
+import { Badge, BadgeTone } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
-import { Divider } from '@/components/ui/divider';
-import { Text } from '@/components/ui/text';
+import { Text, TextColor } from '@/components/ui/text';
 import { useTheme } from '@/hooks/use-theme';
 import { computeMetrics, scoreColor } from '@/lib/utils';
 import { useJournalStore } from '@/store/journal-store';
@@ -15,14 +14,18 @@ import { useJournalStore } from '@/store/journal-store';
 export default function DisciplineScreen() {
   const { colors, spacing } = useTheme();
   const entries = useJournalStore((s) => s.entries);
-  const closedEntries = entries.filter((e) => e.status === 'closed');
-  const metrics = computeMetrics(closedEntries, 'all');
+  const closed = entries.filter((e) => e.status === 'closed');
+  const metrics = computeMetrics(closed, 'all');
+  const hasTrades = closed.length > 0;
 
-  const hasTrades = closedEntries.length > 0;
   const tone = hasTrades ? scoreColor(metrics.overallScore) : 'neutral';
+  const scoreTextColor = (tone === 'neutral' ? 'secondary' : tone) as TextColor;
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['bottom']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      edges={['bottom']}
+    >
       <ScreenHeader
         title="Discipline"
         subtitle="Your behavioral score"
@@ -36,33 +39,32 @@ export default function DisciplineScreen() {
         />
       ) : (
         <ScrollView
-          contentContainerStyle={{ padding: spacing[6], gap: spacing[4] }}
+          contentContainerStyle={{ padding: spacing[6], gap: spacing[5] }}
           showsVerticalScrollIndicator={false}
         >
-          {/* Main score card */}
-          <Card variant="elevated" style={{ alignItems: 'center', paddingVertical: spacing[8] }}>
-            <Text variant="caption" weight="semibold" color="secondary" style={{ letterSpacing: 0.8, textTransform: 'uppercase' }}>
+          {/* Primary score card */}
+          <Card
+            variant="elevated"
+            style={{ alignItems: 'center', paddingVertical: spacing[10] }}
+          >
+            <Text variant="caption" color="tertiary" weight="semibold" caps>
               Overall Score
             </Text>
             <Text
-              variant="display"
-              weight="bold"
-              color={tone}
-              serif
-              style={{ marginTop: spacing[2], fontSize: 64 }}
+              variant="hero"
+              color={scoreTextColor}
+              style={{ marginTop: spacing[3] }}
             >
               {metrics.overallScore}
             </Text>
-            <Text variant="caption" color="tertiary" style={{ marginTop: spacing[1] }}>
-              Based on {metrics.totalTrades} closed {metrics.totalTrades === 1 ? 'trade' : 'trades'}
+            <Text variant="dataSm" color="tertiary" style={{ marginTop: spacing[2] }}>
+              {metrics.totalTrades} closed {metrics.totalTrades === 1 ? 'trade' : 'trades'}
             </Text>
           </Card>
 
-          <Divider spacing={spacing[2]} />
-
-          {/* Sub-metrics */}
-          <View style={{ gap: spacing[3] }}>
-            <Text variant="footnote" weight="semibold" color="secondary" style={{ letterSpacing: 0.6, textTransform: 'uppercase' }}>
+          {/* Sub-metric breakdown */}
+          <View style={{ gap: spacing[2] }}>
+            <Text variant="caption" color="tertiary" weight="semibold" caps>
               Breakdown
             </Text>
 
@@ -93,21 +95,21 @@ export default function DisciplineScreen() {
   );
 }
 
-function MetricRow({ label, value, tone }: { label: string; value: string; tone: 'positive' | 'negative' | 'warning' | 'neutral' }) {
+function MetricRow({ label, value, tone }: { label: string; value: string; tone: BadgeTone }) {
+  const { spacing } = useTheme();
+
   return (
-    <Card variant="outlined" padding={12}>
+    <Card variant="outlined" padding={spacing[4]}>
       <View style={styles.metricRow}>
         <Text variant="body" color="secondary">{label}</Text>
-        <Badge label={value} tone={tone} />
+        <Badge label={value} tone={tone} size="md" />
       </View>
     </Card>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
+  container: { flex: 1 },
   metricRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',

@@ -17,7 +17,10 @@ export default function ReflectScreen() {
   const recentEntries = entries.slice(0, 3);
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['bottom']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      edges={['bottom']}
+    >
       <ScreenHeader
         title="Reflect"
         subtitle="Trading psychology coaching"
@@ -31,32 +34,36 @@ export default function ReflectScreen() {
         />
       ) : (
         <ScrollView
-          contentContainerStyle={{ padding: spacing[6], gap: spacing[4] }}
+          contentContainerStyle={{ padding: spacing[6], gap: spacing[5] }}
           showsVerticalScrollIndicator={false}
         >
           <Card variant="outlined">
-            <Text variant="footnote" color="secondary" weight="semibold" style={{ letterSpacing: 0.6, textTransform: 'uppercase' }}>
+            <Text variant="bodySm" color="sage" weight="medium" caps>
               Recent insight
             </Text>
-            <Text variant="body" style={{ marginTop: spacing[2], lineHeight: 22 }}>
-              You had {recentEntries.length} recent {recentEntries.length === 1 ? 'entry' : 'entries'}. Start a reflection session to uncover behavioral patterns.
+            <Text variant="body" color="secondary" style={{ marginTop: spacing[3], lineHeight: 24 }}>
+              You have {recentEntries.length} recent{' '}
+              {recentEntries.length === 1 ? 'entry' : 'entries'}. Start a reflection
+              session to uncover behavioral patterns.
             </Text>
           </Card>
 
-          <Divider spacing={spacing[2]} />
+          <Divider spacing={spacing[1]} />
 
           <View style={{ gap: spacing[3] }}>
-            <Text variant="footnote" weight="semibold" color="secondary" style={{ letterSpacing: 0.6, textTransform: 'uppercase' }}>
+            <Text variant="caption" color="tertiary" weight="semibold" caps>
               Recent trades to review
             </Text>
             {recentEntries.map((entry) => (
-              <Card key={entry.id} onPress={() => {}} variant="default">
+              <Card key={entry.id} onPress={() => {}}>
                 <View style={styles.row}>
                   <View>
-                    <Text variant="callout" weight="semibold">{entry.symbol}</Text>
-                    <Text variant="caption" color="tertiary">{formatDate(entry.createdAt)}</Text>
+                    <Text variant="h4">{entry.symbol}</Text>
+                    <Text variant="dataSm" color="tertiary" style={{ marginTop: 3 }}>
+                      {formatDate(entry.createdAt)}
+                    </Text>
                   </View>
-                  <Text variant="footnote" color="secondary" style={{ textTransform: 'capitalize' }}>
+                  <Text variant="bodySm" color="secondary" style={{ textTransform: 'capitalize' }}>
                     {entry.outcome ?? entry.status}
                   </Text>
                 </View>
@@ -70,9 +77,7 @@ export default function ReflectScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
+  container: { flex: 1 },
   row: {
     flexDirection: 'row',
     justifyContent: 'space-between',

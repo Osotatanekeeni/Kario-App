@@ -4,8 +4,8 @@ import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import { useTheme } from '@/hooks/use-theme';
 import { Text } from './text';
 
-type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'destructive';
-type ButtonSize = 'sm' | 'md' | 'lg';
+export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'destructive';
+export type ButtonSize = 'sm' | 'md' | 'lg';
 
 interface ButtonProps {
   label: string;
@@ -31,9 +31,8 @@ export function Button({
   const { colors, spacing, radius } = useTheme();
 
   const isDisabled = disabled || loading;
-
   const { bg, fg, borderColor } = resolveVariant(variant, colors);
-  const { paddingH, paddingV, textSize } = resolveSize(size, spacing);
+  const { paddingH, paddingV } = resolveSize(size, spacing);
 
   return (
     <Pressable
@@ -45,11 +44,11 @@ export function Button({
           backgroundColor: bg,
           paddingHorizontal: paddingH,
           paddingVertical: paddingV,
-          borderRadius: radius.md,
+          borderRadius: radius.lg,
           borderWidth: borderColor ? 1 : 0,
           borderColor: borderColor ?? 'transparent',
           alignSelf: fullWidth ? 'stretch' : 'flex-start',
-          opacity: isDisabled ? 0.45 : pressed ? 0.82 : 1,
+          opacity: isDisabled ? 0.4 : pressed ? 0.78 : 1,
         },
       ]}
     >
@@ -59,7 +58,7 @@ export function Button({
         <View style={styles.inner}>
           {icon && <View style={styles.icon}>{icon}</View>}
           <Text
-            variant={textSize}
+            variant={size === 'sm' ? 'bodySm' : 'body'}
             weight="semibold"
             style={{ color: fg }}
           >
@@ -71,34 +70,33 @@ export function Button({
   );
 }
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
 function resolveVariant(
   variant: ButtonVariant,
   colors: ReturnType<typeof useTheme>['colors']
 ): { bg: string; fg: string; borderColor?: string } {
   switch (variant) {
     case 'primary':
-      return { bg: colors.tint, fg: '#FFFFFF' };
+      return { bg: colors.tint, fg: Colors_dark_bg };
     case 'secondary':
       return { bg: colors.surface, fg: colors.tint, borderColor: colors.border };
     case 'ghost':
       return { bg: 'transparent', fg: colors.tint };
     case 'destructive':
-      return { bg: colors.negative, fg: '#FFFFFF' };
+      return { bg: colors.negative, fg: '#F4F2ED' };
   }
 }
+
+// Gold button always uses dark text for contrast (gold + dark = readable)
+const Colors_dark_bg = '#0F1115';
 
 function resolveSize(
   size: ButtonSize,
   spacing: ReturnType<typeof useTheme>['spacing']
-): { paddingH: number; paddingV: number; textSize: 'footnote' | 'body' | 'callout' } {
+): { paddingH: number; paddingV: number } {
   switch (size) {
-    case 'sm': return { paddingH: spacing[3], paddingV: spacing[2], textSize: 'footnote' };
-    case 'lg': return { paddingH: spacing[8], paddingV: spacing[4], textSize: 'callout' };
-    default:   return { paddingH: spacing[5], paddingV: spacing[3], textSize: 'body' };
+    case 'sm': return { paddingH: spacing[3], paddingV: spacing[2] };
+    case 'lg': return { paddingH: spacing[8], paddingV: spacing[4] };
+    default:   return { paddingH: spacing[6], paddingV: spacing[3] };
   }
 }
 

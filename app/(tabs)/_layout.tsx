@@ -6,9 +6,10 @@ import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { FontFamily } from '@/constants/fonts';
 
 export default function TabLayout() {
-  const scheme = useColorScheme() ?? 'light';
+  const scheme = (useColorScheme() ?? 'dark') as keyof typeof Colors;
   const colors = Colors[scheme];
 
   return (
@@ -16,18 +17,18 @@ export default function TabLayout() {
       screenOptions={{
         headerShown: false,
         tabBarButton: HapticTab,
-        tabBarActiveTintColor: colors.tabIconSelected,
+        tabBarActiveTintColor:   colors.tabIconSelected,
         tabBarInactiveTintColor: colors.tabIconDefault,
         tabBarStyle: {
           backgroundColor: colors.background,
-          borderTopColor: colors.border,
-          borderTopWidth: StyleSheet.hairlineWidth,
+          borderTopColor:  colors.border,
+          borderTopWidth:  StyleSheet.hairlineWidth,
           elevation: 0,
           shadowOpacity: 0,
         },
         tabBarLabelStyle: {
-          fontSize: 10,
-          fontWeight: '500',
+          fontFamily: FontFamily.heading.medium,
+          fontSize:   10,
           marginBottom: 2,
         },
       }}

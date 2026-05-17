@@ -10,17 +10,19 @@ import { Text } from '@/components/ui/text';
 import { useTheme } from '@/hooks/use-theme';
 import { isDisruptiveEmotion } from '@/lib/utils';
 import { useJournalStore } from '@/store/journal-store';
-import { EmotionLabel, TradeEntry } from '@/types';
+import { TradeEntry } from '@/types';
 
 export default function InsightsScreen() {
   const { colors, spacing } = useTheme();
   const entries = useJournalStore((s) => s.entries);
   const closed = entries.filter((e) => e.status === 'closed' && e.outcome);
-
   const hasTrades = closed.length >= 3;
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['bottom']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      edges={['bottom']}
+    >
       <ScreenHeader
         title="Insights"
         subtitle="Behavioral pattern analysis"
@@ -46,73 +48,95 @@ export default function InsightsScreen() {
   );
 }
 
-// ---------------------------------------------------------------------------
-// Sub-cards — each surfaces one behavioral insight
-// ---------------------------------------------------------------------------
-
-function WinRateCard({ entries, spacing }: { entries: TradeEntry[]; spacing: any }) {
+function WinRateCard({
+  entries,
+  spacing,
+}: {
+  entries: TradeEntry[];
+  spacing: ReturnType<typeof useTheme>['spacing'];
+}) {
   const wins = entries.filter((e) => e.outcome === 'win').length;
-  const winRate = Math.round((wins / entries.length) * 100);
+  const rate = Math.round((wins / entries.length) * 100);
 
   return (
-    <Card variant="default">
-      <Text variant="footnote" weight="semibold" color="secondary" style={{ letterSpacing: 0.6, textTransform: 'uppercase' }}>
-        Win Rate
-      </Text>
-      <View style={[styles.row, { marginTop: spacing[2] }]}>
-        <Text variant="headline" weight="bold" color={winRate >= 50 ? 'positive' : 'negative'}>
-          {winRate}%
+    <Card>
+      <Text variant="caption" color="tertiary" weight="semibold" caps>Win Rate</Text>
+      <View style={[styles.row, { marginTop: spacing[3] }]}>
+        <Text variant="metric" color={rate >= 50 ? 'positive' : 'negative'}>
+          {rate}%
         </Text>
-        <Text variant="footnote" color="tertiary">
-          {wins} wins / {entries.length} trades
+        <Text variant="dataSm" color="tertiary">
+          {wins} wins · {entries.length} trades
         </Text>
       </View>
     </Card>
   );
 }
 
-function EmotionImpactCard({ entries, spacing }: { entries: TradeEntry[]; spacing: any }) {
-  const disruptiveAndLost = entries.filter(
-    (e) => e.emotionBefore && isDisruptiveEmotion(e.emotionBefore.label) && e.outcome === 'loss'
-  ).length;
-  const disruptiveTotal = entries.filter(
+function EmotionImpactCard({
+  entries,
+  spacing,
+}: {
+  entries: TradeEntry[];
+  spacing: ReturnType<typeof useTheme>['spacing'];
+}) {
+  const disruptiveEntries = entries.filter(
     (e) => e.emotionBefore && isDisruptiveEmotion(e.emotionBefore.label)
-  ).length;
-
-  const calmWins = entries.filter(
-    (e) => e.emotionBefore && !isDisruptiveEmotion(e.emotionBefore.label) && e.outcome === 'win'
-  ).length;
-  const calmTotal = entries.filter(
+  );
+  const calmEntries = entries.filter(
     (e) => e.emotionBefore && !isDisruptiveEmotion(e.emotionBefore.label)
-  ).length;
+  );
+
+  const calmWinRate =
+    calmEntries.length > 0
+      ? Math.round(
+          (calmEntries.filter((e) => e.outcome === 'win').length / calmEntries.length) * 100
+        )
+      : null;
+  const disruptedLossRate =
+    disruptiveEntries.length > 0
+      ? Math.round(
+          (disruptiveEntries.filter((e) => e.outcome === 'loss').length /
+            disruptiveEntries.length) *
+            100
+        )
+      : null;
 
   return (
-    <Card variant="default">
-      <Text variant="footnote" weight="semibold" color="secondary" style={{ letterSpacing: 0.6, textTransform: 'uppercase' }}>
-        Emotional State vs. Outcome
+    <Card>
+      <Text variant="caption" color="tertiary" weight="semibold" caps>
+        Emotion vs. Outcome
       </Text>
       <View style={{ gap: spacing[3], marginTop: spacing[3] }}>
-        {calmTotal > 0 && (
+        {calmWinRate !== null && (
           <View style={styles.row}>
             <Text variant="body" color="secondary">Win rate when calm</Text>
-            <Badge label={`${Math.round((calmWins / calmTotal) * 100)}%`} tone="positive" />
+            <Badge label={`${calmWinRate}%`} tone="positive" size="md" />
           </View>
         )}
-        {disruptiveTotal > 0 && (
+        {disruptedLossRate !== null && (
           <View style={styles.row}>
             <Text variant="body" color="secondary">Loss rate when disrupted</Text>
-            <Badge label={`${Math.round((disruptiveAndLost / disruptiveTotal) * 100)}%`} tone="negative" />
+            <Badge label={`${disruptedLossRate}%`} tone="negative" size="md" />
           </View>
         )}
-        {calmTotal === 0 && disruptiveTotal === 0 && (
-          <Text variant="body" color="tertiary">No emotional data recorded yet.</Text>
+        {calmWinRate === null && disruptedLossRate === null && (
+          <Text variant="body" color="tertiary">
+            No emotional data recorded yet.
+          </Text>
         )}
       </View>
     </Card>
   );
 }
 
-function RuleAdherenceCard({ entries, spacing }: { entries: TradeEntry[]; spacing: any }) {
+function RuleAdherenceCard({
+  entries,
+  spacing,
+}: {
+  entries: TradeEntry[];
+  spacing: ReturnType<typeof useTheme>['spacing'];
+}) {
   const withRules = entries.filter(
     (e) => e.rulesFollowed.length + e.rulesBroken.length > 0
   );
@@ -127,21 +151,27 @@ function RuleAdherenceCard({ entries, spacing }: { entries: TradeEntry[]; spacin
     );
   }
 
-  const totalFollowed = withRules.reduce((a, e) => a + e.rulesFollowed.length, 0);
-  const totalAll = withRules.reduce((a, e) => a + e.rulesFollowed.length + e.rulesBroken.length, 0);
-  const adherenceRate = Math.round((totalFollowed / totalAll) * 100);
+  const followed = withRules.reduce((a, e) => a + e.rulesFollowed.length, 0);
+  const total = withRules.reduce(
+    (a, e) => a + e.rulesFollowed.length + e.rulesBroken.length,
+    0
+  );
+  const rate = Math.round((followed / total) * 100);
 
   return (
-    <Card variant="default">
-      <Text variant="footnote" weight="semibold" color="secondary" style={{ letterSpacing: 0.6, textTransform: 'uppercase' }}>
+    <Card>
+      <Text variant="caption" color="tertiary" weight="semibold" caps>
         Rule Adherence
       </Text>
-      <View style={[styles.row, { marginTop: spacing[2] }]}>
-        <Text variant="headline" weight="bold" color={adherenceRate >= 75 ? 'positive' : adherenceRate >= 50 ? 'warning' : 'negative'}>
-          {adherenceRate}%
+      <View style={[styles.row, { marginTop: spacing[3] }]}>
+        <Text
+          variant="metric"
+          color={rate >= 75 ? 'positive' : rate >= 50 ? 'warning' : 'negative'}
+        >
+          {rate}%
         </Text>
-        <Text variant="footnote" color="tertiary">
-          {totalFollowed} of {totalAll} rules followed
+        <Text variant="dataSm" color="tertiary">
+          {followed} of {total} rules followed
         </Text>
       </View>
     </Card>
@@ -149,9 +179,7 @@ function RuleAdherenceCard({ entries, spacing }: { entries: TradeEntry[]; spacin
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
+  container: { flex: 1 },
   row: {
     flexDirection: 'row',
     justifyContent: 'space-between',

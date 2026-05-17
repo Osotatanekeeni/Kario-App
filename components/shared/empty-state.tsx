@@ -1,9 +1,9 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { useTheme } from '@/hooks/use-theme';
 import { Button } from '@/components/ui/button';
 import { Text } from '@/components/ui/text';
+import { useTheme } from '@/hooks/use-theme';
 
 interface EmptyStateProps {
   heading: string;
@@ -20,7 +20,7 @@ export function EmptyState({ heading, body, action }: EmptyStateProps) {
   return (
     <View style={[styles.container, { paddingHorizontal: spacing[8] }]}>
       <View style={styles.content}>
-        <Text variant="headline" weight="semibold" style={styles.heading} serif>
+        <Text variant="h2" style={styles.heading}>
           {heading}
         </Text>
         <Text variant="body" color="secondary" style={styles.body}>
@@ -32,7 +32,6 @@ export function EmptyState({ heading, body, action }: EmptyStateProps) {
               label={action.label}
               onPress={action.onPress}
               variant="primary"
-              size="md"
             />
           </View>
         )}
@@ -50,7 +49,7 @@ const styles = StyleSheet.create({
   content: {
     alignItems: 'center',
     gap: 10,
-    maxWidth: 280,
+    maxWidth: 300,
   },
   heading: {
     textAlign: 'center',

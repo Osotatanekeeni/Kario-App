@@ -2,9 +2,9 @@ import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { useTheme } from '@/hooks/use-theme';
 import { Divider } from '@/components/ui/divider';
 import { Text } from '@/components/ui/text';
+import { useTheme } from '@/hooks/use-theme';
 
 interface ScreenHeaderProps {
   title: string;
@@ -26,21 +26,19 @@ export function ScreenHeader({
     <View style={{ backgroundColor: colors.background }}>
       <View
         style={[
-          styles.header,
+          styles.container,
           {
-            paddingTop: insets.top + spacing[4],
-            paddingHorizontal: spacing[6],
-            paddingBottom: spacing[4],
+            paddingTop:         insets.top + spacing[4],
+            paddingHorizontal:  spacing[6],
+            paddingBottom:      spacing[5],
           },
         ]}
       >
-        <View style={styles.titleRow}>
-          <View style={styles.titleBlock}>
-            <Text variant="title" weight="bold" serif>
-              {title}
-            </Text>
+        <View style={styles.row}>
+          <View style={styles.titles}>
+            <Text variant="h1">{title}</Text>
             {subtitle ? (
-              <Text variant="footnote" color="secondary" style={{ marginTop: 2 }}>
+              <Text variant="bodySm" color="tertiary" style={{ marginTop: 3 }}>
                 {subtitle}
               </Text>
             ) : null}
@@ -54,19 +52,18 @@ export function ScreenHeader({
 }
 
 const styles = StyleSheet.create({
-  header: {
-    gap: 0,
-  },
-  titleRow: {
+  container: {},
+  row: {
     flexDirection: 'row',
     alignItems: 'flex-end',
     justifyContent: 'space-between',
   },
-  titleBlock: {
+  titles: {
     flex: 1,
     gap: 2,
   },
   right: {
     marginLeft: 16,
+    paddingBottom: 4,
   },
 });

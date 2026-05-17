@@ -5,13 +5,12 @@ import { useTheme } from '@/hooks/use-theme';
 
 interface DividerProps extends ViewProps {
   subtle?: boolean;
+  /** Adds vertical margin equal to this value on both sides */
   spacing?: number;
 }
 
 export function Divider({ subtle = false, spacing, style, ...rest }: DividerProps) {
   const { colors } = useTheme();
-
-  const margin = spacing ?? 0;
 
   return (
     <View
@@ -19,7 +18,7 @@ export function Divider({ subtle = false, spacing, style, ...rest }: DividerProp
         styles.divider,
         {
           backgroundColor: subtle ? colors.borderSubtle : colors.border,
-          marginVertical: margin,
+          marginVertical: spacing ?? 0,
         },
         style,
       ]}

@@ -55,7 +55,7 @@ const styles = StyleSheet.create({
   container: {},
   row: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
   },
   titles: {
@@ -64,6 +64,5 @@ const styles = StyleSheet.create({
   },
   right: {
     marginLeft: 16,
-    paddingBottom: 4,
   },
 });

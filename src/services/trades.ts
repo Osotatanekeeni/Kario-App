@@ -21,6 +21,7 @@ export interface TradeFormData {
   postEmotion: string;
   postIntensity: number;
   mistakes: string[];
+  otherMistake: string;
   reflection: string;
 }
 
@@ -46,14 +47,19 @@ export interface TradeSummary {
 
 const MISTAKE_ENUM: Record<string, string> = {
   'Early entry':      'early_entry',
+  'Early exit':       'early_exit',
   'Late entry':       'late_entry',
   'Held too long':    'late_exit',
   'FOMO trade':       'fomo',
+  'Revenge trade':    'revenge_trade',
   'Moved stop loss':  'moved_stop',
   'Overtraded':       'overtrading',
   'Sized too large':  'oversize',
+  'Sized too small':  'undersize',
   'Ignored the plan': 'no_plan',
+  'Missed signal':    'missed_signal',
   'Broke a rule':     'broke_rule',
+  'Other':            'other',
 };
 
 // ---------------------------------------------------------------------------
@@ -147,9 +153,17 @@ export async function saveTrade(
 
   // 4. Insert mistakes (type: mistake_type enum)
   if (data.mistakes.length > 0) {
-    const rows = data.mistakes
-      .map((m) => MISTAKE_ENUM[m] ?? 'other')
-      .map((type) => ({ trade_id: tradeId, user_id: userId, type }));
+    const rows = data.mistakes.map((m) => {
+      const type = MISTAKE_ENUM[m] ?? 'other';
+      return {
+        trade_id:    tradeId,
+        user_id:     userId,
+        type,
+        description: type === 'other' && data.otherMistake.trim()
+          ? data.otherMistake.trim()
+          : null,
+      };
+    });
     const { error: mistakeError } = await supabase.from('trade_mistakes').insert(rows);
     if (mistakeError) throw mistakeError;
   }
@@ -167,7 +181,9 @@ export async function saveTrade(
     preIntensity:  data.preIntensity,
     postEmotion:   data.postEmotion,
     postIntensity: data.postIntensity,
-    mistakes:      data.mistakes,
+    mistakes:      data.mistakes.map((m) =>
+      m === 'Other' && data.otherMistake.trim() ? data.otherMistake.trim() : m
+    ),
     reflection:    data.reflection,
     rules,
   };

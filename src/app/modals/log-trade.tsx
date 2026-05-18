@@ -42,13 +42,17 @@ const POST_EMOTIONS = [
 // Labels map to mistake_type enum via MISTAKE_ENUM in trades.ts
 const MISTAKES = [
   'Early entry',
+  'Early exit',
   'Late entry',
   'Held too long',
   'FOMO trade',
+  'Revenge trade',
   'Moved stop loss',
   'Overtraded',
   'Sized too large',
+  'Sized too small',
   'Ignored the plan',
+  'Missed signal',
   'Broke a rule',
 ] as const;
 
@@ -71,6 +75,7 @@ const DEFAULT_FORM: TradeFormData = {
   postEmotion: '',
   postIntensity: 3,
   mistakes: [],
+  otherMistake: '',
   reflection: '',
 };
 
@@ -167,8 +172,10 @@ export default function LogTradeModal() {
         <Pressable onPress={() => router.back()} hitSlop={8} style={styles.closeBtn}>
           <MaterialIcons name="close" size={22} color={colors.textTertiary} />
         </Pressable>
-        <StepDots current={step} total={TOTAL_STEPS} />
-        <View style={{ width: 30 }} />
+        <View style={{ flex: 1 }} />
+        <Text variant="caption" style={{ fontSize: 12, color: colors.textTertiary }}>
+          {step}/{TOTAL_STEPS}
+        </Text>
       </View>
 
       {/* Scrollable content */}
@@ -221,33 +228,6 @@ export default function LogTradeModal() {
         />
       </View>
     </SafeAreaView>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Step dots progress indicator
-// ---------------------------------------------------------------------------
-
-function StepDots({ current, total }: { current: number; total: number }) {
-  const { colors } = useTheme();
-  return (
-    <View style={styles.dots}>
-      {Array.from({ length: total }).map((_, i) => {
-        const active = i + 1 === current;
-        const done = i + 1 < current;
-        return (
-          <View
-            key={i}
-            style={{
-              height: 6,
-              width: active ? 20 : 6,
-              borderRadius: 3,
-              backgroundColor: done || active ? colors.tint : colors.border,
-            }}
-          />
-        );
-      })}
-    </View>
   );
 }
 
@@ -360,12 +340,33 @@ function StepTradeDetails({
 
       {/* R:R */}
       <FieldBlock label="Risk : Reward">
-        <FieldInput
-          value={form.rrRatio}
-          onChangeText={(v) => patch({ rrRatio: v })}
-          placeholder="e.g. 1:2"
-          returnKeyType="done"
-        />
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing[2] }}>
+          <View style={{ flex: 1 }}>
+            <FieldInput
+              value={form.rrRatio.split(':')[0] ?? ''}
+              onChangeText={(v) => {
+                const right = form.rrRatio.split(':')[1] ?? '';
+                patch({ rrRatio: v + ':' + right });
+              }}
+              placeholder="1"
+              keyboardType="decimal-pad"
+              returnKeyType="done"
+            />
+          </View>
+          <Text variant="h3" color="tertiary" style={{ paddingBottom: 2 }}>:</Text>
+          <View style={{ flex: 1 }}>
+            <FieldInput
+              value={form.rrRatio.split(':')[1] ?? ''}
+              onChangeText={(v) => {
+                const left = form.rrRatio.split(':')[0] ?? '';
+                patch({ rrRatio: left + ':' + v });
+              }}
+              placeholder="2"
+              keyboardType="decimal-pad"
+              returnKeyType="done"
+            />
+          </View>
+        </View>
       </FieldBlock>
 
       {/* Session */}
@@ -519,20 +520,38 @@ function StepMistakes({
   patch: (u: Partial<TradeFormData>) => void;
 }) {
   const { colors, spacing, radius } = useTheme();
+  const [noneSelected, setNoneSelected] = useState(false);
+
+  const isOtherSelected = form.mistakes.includes('Other');
 
   const toggle = (m: string) => {
+    // Tapping any real mistake deactivates None
+    if (noneSelected) setNoneSelected(false);
     const next = form.mistakes.includes(m)
       ? form.mistakes.filter((x) => x !== m)
       : [...form.mistakes, m];
-    patch({ mistakes: next });
+    // If deselecting Other, also clear the text
+    if (m === 'Other' && form.mistakes.includes('Other')) {
+      patch({ mistakes: next, otherMistake: '' });
+    } else {
+      patch({ mistakes: next });
+    }
+  };
+
+  const handleNone = () => {
+    const next = !noneSelected;
+    setNoneSelected(next);
+    if (next) patch({ mistakes: [], otherMistake: '' });
   };
 
   return (
     <View style={{ gap: spacing[5] }}>
       <StepHeading
         title="Mistakes"
-        subtitle="Select any that apply. None is a valid answer."
+        subtitle="Select any that apply."
       />
+
+      {/* Mistake chips — includes Other inline */}
       <View style={styles.mistakeGrid}>
         {MISTAKES.map((m) => {
           const selected = form.mistakes.includes(m);
@@ -556,14 +575,94 @@ function StepMistakes({
               <Text
                 variant="bodySm"
                 weight={selected ? 'semibold' : 'regular'}
-                style={{ color: selected ? colors.negative : colors.textSecondary, flex: 1 }}
+                style={{ color: selected ? colors.negative : colors.textSecondary }}
               >
                 {m}
               </Text>
             </Pressable>
           );
         })}
+
+        {/* Other chip — inline with the rest */}
+        <Pressable
+          onPress={() => toggle('Other')}
+          style={[
+            styles.mistakeChip,
+            {
+              borderRadius: radius.md,
+              borderWidth: 1,
+              borderColor: isOtherSelected ? colors.tint : colors.border,
+              backgroundColor: isOtherSelected ? colors.tint + '12' : colors.surface,
+            },
+          ]}
+        >
+          <MaterialIcons
+            name={isOtherSelected ? 'edit' : 'add'}
+            size={14}
+            color={isOtherSelected ? colors.tint : colors.textTertiary}
+          />
+          <Text
+            variant="bodySm"
+            weight={isOtherSelected ? 'semibold' : 'regular'}
+            style={{ color: isOtherSelected ? colors.tint : colors.textSecondary }}
+          >
+            Other
+          </Text>
+        </Pressable>
       </View>
+
+      {/* Other text input — shown below grid when Other is selected */}
+      {isOtherSelected && (
+        <TextInput
+          style={[
+            {
+              backgroundColor: colors.surface,
+              borderWidth: 1,
+              borderColor: colors.border,
+              borderRadius: radius.md,
+              paddingHorizontal: spacing[4],
+              paddingVertical: spacing[3],
+              color: colors.text,
+              fontSize: 15,
+            },
+          ]}
+          placeholder="Describe the mistake…"
+          placeholderTextColor={colors.textTertiary}
+          value={form.otherMistake}
+          onChangeText={(v) => patch({ otherMistake: v })}
+          returnKeyType="done"
+          blurOnSubmit
+          selectionColor={colors.tint}
+          autoFocus
+        />
+      )}
+
+      {/* None of the above */}
+      <Pressable
+        onPress={handleNone}
+        style={[
+          styles.noneChip,
+          {
+            borderRadius: radius.md,
+            borderWidth: 1,
+            borderColor: noneSelected ? colors.accent : colors.border,
+            backgroundColor: noneSelected ? colors.accent + '14' : 'transparent',
+            paddingHorizontal: spacing[4],
+            paddingVertical: spacing[3],
+          },
+        ]}
+      >
+        {noneSelected && (
+          <MaterialIcons name="check" size={16} color={colors.accent} />
+        )}
+        <Text
+          variant="bodySm"
+          weight={noneSelected ? 'semibold' : 'regular'}
+          style={{ color: noneSelected ? colors.accent : colors.textTertiary }}
+        >
+          None of the above
+        </Text>
+      </Pressable>
     </View>
   );
 }
@@ -845,11 +944,6 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     justifyContent: 'center',
   },
-  dots: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-  },
   footer: {
     flexDirection: 'row',
     gap: 12,
@@ -917,6 +1011,12 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingHorizontal: 14,
     paddingVertical: 10,
+  },
+  noneChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    alignSelf: 'flex-start',
   },
   reflectionInput: {
     borderWidth: 1,

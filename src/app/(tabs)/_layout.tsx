@@ -1,9 +1,9 @@
+import { MaterialIcons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import React from 'react';
-import { StyleSheet } from 'react-native';
+import { Platform, StyleSheet } from 'react-native';
 
 import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/theme';
 import { FontFamily } from '@/theme/fonts';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -23,13 +23,19 @@ export default function TabLayout() {
           backgroundColor: colors.background,
           borderTopColor:  colors.border,
           borderTopWidth:  StyleSheet.hairlineWidth,
+          height: Platform.OS === 'ios' ? 80 : 64,
+          paddingTop: 8,
+          paddingBottom: Platform.OS === 'ios' ? 24 : 8,
           elevation: 0,
           shadowOpacity: 0,
         },
         tabBarLabelStyle: {
           fontFamily: FontFamily.heading.medium,
-          fontSize:   14,
-          marginBottom: 2,
+          fontSize:   11,
+          marginTop: 2,
+        },
+        tabBarIconStyle: {
+          marginBottom: 0,
         },
       }}
     >
@@ -37,8 +43,8 @@ export default function TabLayout() {
         name="home"
         options={{
           title: 'Home',
-          tabBarIcon: ({ color, size }) => (
-            <IconSymbol name="house.fill" color={color} size={size} />
+          tabBarIcon: ({ color }) => (
+            <MaterialIcons name="home" color={color} size={24} />
           ),
         }}
       />
@@ -46,8 +52,8 @@ export default function TabLayout() {
         name="journal"
         options={{
           title: 'Journal',
-          tabBarIcon: ({ color, size }) => (
-            <IconSymbol name="book.fill" color={color} size={size} />
+          tabBarIcon: ({ color }) => (
+            <MaterialIcons name="menu-book" color={color} size={24} />
           ),
         }}
       />
@@ -55,8 +61,8 @@ export default function TabLayout() {
         name="review"
         options={{
           title: 'Review',
-          tabBarIcon: ({ color, size }) => (
-            <IconSymbol name="bubble.left.and.bubble.right.fill" color={color} size={size} />
+          tabBarIcon: ({ color }) => (
+            <MaterialIcons name="forum" color={color} size={24} />
           ),
         }}
       />
@@ -64,8 +70,8 @@ export default function TabLayout() {
         name="analytics"
         options={{
           title: 'Analytics',
-          tabBarIcon: ({ color, size }) => (
-            <IconSymbol name="chart.bar.fill" color={color} size={size} />
+          tabBarIcon: ({ color }) => (
+            <MaterialIcons name="bar-chart" color={color} size={24} />
           ),
         }}
       />
@@ -73,8 +79,8 @@ export default function TabLayout() {
         name="playbook"
         options={{
           title: 'Playbook',
-          tabBarIcon: ({ color, size }) => (
-            <IconSymbol name="doc.text.fill" color={color} size={size} />
+          tabBarIcon: ({ color }) => (
+            <MaterialIcons name="article" color={color} size={24} />
           ),
         }}
       />
@@ -82,8 +88,8 @@ export default function TabLayout() {
         name="profile"
         options={{
           title: 'Profile',
-          tabBarIcon: ({ color, size }) => (
-            <IconSymbol name="person.fill" color={color} size={size} />
+          tabBarIcon: ({ color }) => (
+            <MaterialIcons name="person" color={color} size={24} />
           ),
         }}
       />

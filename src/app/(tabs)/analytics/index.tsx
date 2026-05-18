@@ -1,4 +1,5 @@
 import { MaterialIcons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
@@ -14,7 +15,9 @@ import { ScreenHeader } from '@/components/shared/screen-header';
 import { Button } from '@/components/ui/button';
 import { Divider } from '@/components/ui/divider';
 import { Text } from '@/components/ui/text';
+import { useSession } from '@/features/auth/hooks';
 import { useDiscipline } from '@/features/discipline/hooks';
+import { useCurrentWeekReport, useInvalidateReports } from '@/features/reports/hooks';
 import { useTheme } from '@/hooks/use-theme';
 import {
   CategoryScore,
@@ -23,6 +26,7 @@ import {
   WeeklyDiscipline,
   generateDisciplineInsight,
 } from '@/services/discipline';
+import { buildAndSaveWeeklyReport, WeeklyReport } from '@/services/weekly-report';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -58,9 +62,14 @@ function fmtDate(iso: string): string {
 export default function AnalyticsScreen() {
   const { colors, spacing } = useTheme();
   const { data, isLoading } = useDiscipline();
+  const { session } = useSession();
 
   const [insight, setInsight] = useState<DisciplineInsight | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
+  const [generatingReport, setGeneratingReport] = useState(false);
+
+  const { report: currentReport, isLoading: reportLoading } = useCurrentWeekReport();
+  const invalidateReports = useInvalidateReports();
 
   const handleAnalyze = async () => {
     if (!data) return;
@@ -70,6 +79,18 @@ export default function AnalyticsScreen() {
       setInsight(result);
     } finally {
       setAnalyzing(false);
+    }
+  };
+
+  const handleGenerateReport = async () => {
+    if (!session?.user.id) return;
+    setGeneratingReport(true);
+    try {
+      const report = await buildAndSaveWeeklyReport(session.user.id);
+      invalidateReports();
+      router.push({ pathname: '/analytics/report', params: { id: report.id } });
+    } finally {
+      setGeneratingReport(false);
     }
   };
 
@@ -133,6 +154,17 @@ export default function AnalyticsScreen() {
             <RecentTradesSection scores={weekly.recentTradeScores} />
           </>
         )}
+
+        <Divider subtle />
+
+        {/* Weekly report */}
+        <WeeklyReportSection
+          report={currentReport}
+          loading={reportLoading}
+          generating={generatingReport}
+          onGenerate={handleGenerateReport}
+          onView={(id) => router.push({ pathname: '/analytics/report', params: { id } })}
+        />
       </ScrollView>
     </SafeAreaView>
   );
@@ -490,6 +522,144 @@ function RecentTradesSection({ scores }: { scores: TradeScore[] }) {
           </View>
         );
       })}
+    </View>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Weekly report section
+// ---------------------------------------------------------------------------
+
+function WeeklyReportSection({
+  report,
+  loading,
+  generating,
+  onGenerate,
+  onView,
+}: {
+  report: WeeklyReport | null;
+  loading: boolean;
+  generating: boolean;
+  onGenerate: () => void;
+  onView: (id: string) => void;
+}) {
+  const { colors, spacing, radius } = useTheme();
+
+  if (loading) {
+    return (
+      <View style={{ gap: spacing[4] }}>
+        <Text variant="caption" weight="semibold" color="tertiary">WEEKLY REPORT</Text>
+        <View style={{ alignItems: 'center', paddingVertical: spacing[4] }}>
+          <ActivityIndicator color={colors.tint} />
+        </View>
+      </View>
+    );
+  }
+
+  if (report) {
+    const deltaStr = report.delta !== null
+      ? `${report.delta >= 0 ? '+' : ''}${report.delta} pts`
+      : null;
+    const scoreCol = scoreColor(report.score, colors);
+
+    return (
+      <View style={{ gap: spacing[4] }}>
+        <Text variant="caption" weight="semibold" color="tertiary">WEEKLY REPORT</Text>
+
+        <Pressable
+          onPress={() => onView(report.id)}
+          style={[
+            {
+              backgroundColor: colors.surface,
+              borderRadius:    radius.lg,
+              borderWidth:     StyleSheet.hairlineWidth,
+              borderColor:     colors.border,
+              padding:         spacing[4],
+              gap:             spacing[4],
+              overflow:        'hidden',
+            },
+          ]}
+        >
+          {/* Accent bar */}
+          <View style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, backgroundColor: scoreCol }} />
+
+          <View style={[styles.trendRow, { justifyContent: 'space-between', marginTop: spacing[2] }]}>
+            <View style={{ gap: 4 }}>
+              <Text variant="caption" weight="semibold" color="tertiary">
+                {new Date(report.weekStart + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                {' – '}
+                {new Date(report.weekEnd + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+              </Text>
+              <View style={[styles.trendRow, { gap: 8 }]}>
+                <Text variant="metric" weight="semibold" style={{ color: scoreCol }}>
+                  {report.score}
+                </Text>
+                {deltaStr && (
+                  <Text variant="bodySm" style={{
+                    color: (report.delta ?? 0) >= 0 ? colors.positive : colors.negative,
+                  }}>
+                    {deltaStr}
+                  </Text>
+                )}
+              </View>
+            </View>
+            <MaterialIcons name="chevron-right" size={22} color={colors.textTertiary} />
+          </View>
+
+          <Text variant="bodySm" color="secondary" style={{ lineHeight: 22 }} numberOfLines={2}>
+            {report.sections.summary}
+          </Text>
+        </Pressable>
+
+        <Pressable
+          onPress={onGenerate}
+          disabled={generating}
+          style={[styles.trendRow, { gap: spacing[2], justifyContent: 'center', paddingVertical: spacing[2] }]}
+        >
+          {generating
+            ? <ActivityIndicator size="small" color={colors.textTertiary} />
+            : <MaterialIcons name="refresh" size={16} color={colors.textTertiary} />}
+          <Text variant="bodySm" color="tertiary">
+            {generating ? 'Regenerating…' : 'Regenerate this week\'s report'}
+          </Text>
+        </Pressable>
+      </View>
+    );
+  }
+
+  // No report yet for this week
+  return (
+    <View style={{ gap: spacing[4] }}>
+      <Text variant="caption" weight="semibold" color="tertiary">WEEKLY REPORT</Text>
+
+      <View
+        style={[
+          {
+            borderRadius:    radius.lg,
+            borderWidth:     1,
+            borderColor:     colors.tint + '40',
+            backgroundColor: colors.tint + '08',
+            padding:         spacing[6],
+            gap:             spacing[4],
+          },
+        ]}
+      >
+        <View style={styles.aiHeader}>
+          <MaterialIcons name="insights" size={22} color={colors.tint} />
+          <Text variant="h4" weight="medium">Weekly Psychology Report</Text>
+        </View>
+        <Text variant="body" color="secondary" style={{ lineHeight: 24 }}>
+          A full mentor-style analysis of your discipline trends, emotional patterns, and behavioral evolution this week.
+        </Text>
+        <Button
+          label={generating ? 'Generating report…' : 'Generate this week\'s report'}
+          variant="primary"
+          fullWidth
+          disabled={generating}
+          icon={generating ? <ActivityIndicator size="small" color="#0F1115" /> : undefined}
+          onPress={onGenerate}
+        />
+      </View>
     </View>
   );
 }

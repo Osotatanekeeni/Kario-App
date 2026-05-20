@@ -1,5 +1,6 @@
+import { MaterialIcons } from '@expo/vector-icons';
 import React from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 
@@ -9,6 +10,7 @@ import { Text } from '@/components/ui/text';
 import { Button } from '@/components/ui/button';
 import { Divider } from '@/components/ui/divider';
 import { Badge } from '@/components/ui/badge';
+import { useDailyPrinciple } from '@/features/playbook/hooks';
 import { useTheme } from '@/hooks/use-theme';
 import { useJournalStore } from '@/store/journal-store';
 import { useUserStore } from '@/store/user-store';
@@ -26,6 +28,7 @@ export default function HomeScreen() {
 
   const greeting = getGreeting();
   const displayName = profile?.displayName ?? 'Trader';
+  const dailyPrinciple = useDailyPrinciple();
 
   return (
     <SafeAreaView
@@ -73,6 +76,34 @@ export default function HomeScreen() {
             onPress={() => router.push(ROUTES.LOG_TRADE as any)}
           />
         </Card>
+
+        {/* Daily principle */}
+        {dailyPrinciple && (
+          <Pressable
+            onPress={() => router.push('/(tabs)/playbook' as any)}
+            style={[
+              styles.principleCard,
+              {
+                backgroundColor: colors.surface,
+                borderRadius:    spacing[2],
+                borderWidth:     1,
+                borderColor:     colors.tint + '30',
+                padding:         spacing[6],
+                gap:             spacing[2],
+              },
+            ]}
+          >
+            <View style={[styles.row, { gap: spacing[2] }]}>
+              <MaterialIcons name="format-quote" size={14} color={colors.tint} />
+              <Text variant="caption" weight="semibold" style={{ color: colors.tint }}>
+                TODAY'S PRINCIPLE
+              </Text>
+            </View>
+            <Text variant="body" style={{ lineHeight: 24, fontStyle: 'italic', color: colors.textSecondary }}>
+              {dailyPrinciple.text}
+            </Text>
+          </Pressable>
+        )}
 
         {/* Recent entries */}
         {recentEntries.length > 0 && (
@@ -137,10 +168,7 @@ function getGreeting(): string {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
+  container:     { flex: 1 },
+  row:           { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  principleCard: {},
 });

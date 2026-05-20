@@ -13,6 +13,9 @@ export default function ModalsLayout() {
       }}
     >
       <Stack.Screen name="log-trade" />
+      <Stack.Screen name="playbook-rule" />
+      <Stack.Screen name="playbook-setup" />
+      <Stack.Screen name="playbook-principle" />
     </Stack>
   );
 }
